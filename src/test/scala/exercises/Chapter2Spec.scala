@@ -1,8 +1,6 @@
 package exercises
 
-import org.scalatest.{FlatSpec, Matchers}
-
-class Chapter2Spec extends FlatSpec with Matchers with Chapter2 {
+class Chapter2Spec extends BaseSpec with Chapter2 {
 
   "fib" should "work" in {
     this.fib(0) should be (0)
