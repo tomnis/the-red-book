@@ -96,4 +96,13 @@ class Chapter4Spec extends BaseSpec {
 
 
   }
+
+
+  // 4.7
+
+
+  // 4.8
+  // def mkPerson(name: String, age: Int): Either[String, Person] =
+  // use a nonempty seq?
+  // def mkPerson(name: String, age: Int): Either[String, Person] =
 }
