@@ -21,22 +21,19 @@ sealed trait Stream[+A] {
   }
 
 
-
   @tailrec
   final def drop(n: Int): Stream[A] = {
     this match {
-      case Empty => this
-      case Cons(_, _) if n <= 0 => this
-      case Cons(_, t) => t().drop(n - 1)
+      case Cons(_, t) if n > 0 => t().drop(n - 1)
+      case _ => this
     }
   }
 
 
   def take(n: Int): Stream[A] = {
     this match {
-      case Empty => Empty
-      case Cons(_, _) if n <= 0 => Empty
-      case Cons(h, t) => cons[A](h(), t().take(n - 1))
+      case Cons(h, t) if n > 0 => cons[A](h(), t().take(n - 1))
+      case _ => Empty
     }
   }
 
@@ -95,6 +92,39 @@ sealed trait Stream[+A] {
     foldRight(empty[B])((a, b) => f(a).append(b))
   }
 
+
+  // 5.13
+//  def mapUnfold[B](f: A => B): Stream[B] = {
+//    Stream.unfold(this) {
+//      case Cons(a, b) => Option((f(a), b()))
+//      case _ => None
+//    }
+//  }
+
+
+  def takeUnfold(n: Int): Stream[A] = {
+    Stream.unfold((this, n)) {
+      case (Cons(a, b), num) if num > 0 => Option(a(), (b().takeUnfold(n - 1), n - 1))
+      case _ => None
+    }
+  }
+
+  def takeWhileUnfold(p: A => Boolean): Stream[A] = {
+    Stream.unfold(this) {
+      case Cons(a, b) if p(a()) => Option((a(), b()))
+      case _ => None
+    }
+  }
+
+
+  def zipAll[B](s2: Stream[B]): Stream[(Option[A], Option[B])] = {
+    Stream.unfold(this, s2) {
+      case (Cons(a1, b1), Cons(a2, b2)) => Option((Option(a1()), Option(a2())), (b1(), b2()))
+      case (Empty, Cons(a2, b2)) => Option((None, Option(a2())), (empty[A], b2()))
+      case (Cons(a1, b1), Empty) => Option((Option(a1()), None), (b1(), empty[B]))
+      case _ => None
+    }
+  }
 
 
 }

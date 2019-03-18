@@ -13,6 +13,7 @@ class Chapter3Spec extends BaseSpec with Chapter3Like {
   "foldLeft" should "work" in {
     this.foldLeft(List(1,2,3,4,5), 0)((acc, a) => acc + a) should be (15)
     this.foldLeft(List(1,2,3,4,5), 0)((acc, a) => acc - a) should be (-15)
+    this.foldLeftInTermsOfFoldRight(List(1,2,3,4,5), 0)((acc, a) => acc - a) should be (-15)
   }
 
   "foldRight" should "work" in {

@@ -35,10 +35,6 @@ class Chapter4Spec extends BaseSpec {
         vari <- mean(xs.map(x => math.pow(x - avg, 2)))
       } yield vari
     }
-
-
-
-
   }
 
 
@@ -68,7 +64,7 @@ class Chapter4Spec extends BaseSpec {
 
   // 4.4
   def sequence[A](as: List[FpOption[A]]): FpOption[List[A]] = {
-    val reversed = as.foldLeft(FpOption(List.empty[A])) { case (maybeAcc: FpOption[List[A]], maybeA: FpOption[A]) =>
+    val reversed: FpOption[List[A]] = as.foldLeft(FpOption(List.empty[A])) { case (maybeAcc: FpOption[List[A]], maybeA: FpOption[A]) =>
       bimap(maybeA, maybeAcc)(_ :: _)
     }
     reversed.map(_.reverse)
@@ -104,5 +100,6 @@ class Chapter4Spec extends BaseSpec {
   // 4.8
   // def mkPerson(name: String, age: Int): Either[String, Person] =
   // use a nonempty seq?
-  // def mkPerson(name: String, age: Int): Either[String, Person] =
+  // def mkPerson(name: String, age: Int): Either[Seq[String], Person] =
+  // mkPerson("", -1)
 }

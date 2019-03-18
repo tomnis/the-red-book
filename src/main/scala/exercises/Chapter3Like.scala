@@ -69,6 +69,7 @@ trait Chapter3Like extends Chapter2 {
 
 
 
+  // 3.11
   def sumFold(nums: List[Int]): Int = this.foldLeft(nums, 0)(_  + _)
 
 
@@ -89,6 +90,11 @@ trait Chapter3Like extends Chapter2 {
   // 3.13
   def foldRightInTermsOfFoldLeft[A, B](as: List[A], zero: B)(f: (A, B) => B): B = {
     this.foldLeft(as.reverse, zero){ case (b, a) => f(a, b) }
+  }
+
+
+  def foldLeftInTermsOfFoldRight[A, B](as: List[A], zero: B)(f: (B, A) => B): B = {
+    this.foldRight(as.reverse, zero){ case (a, b) => f(b, a) }
   }
 
 
@@ -191,6 +197,19 @@ trait Chapter3Like extends Chapter2 {
     }
   }
 
+  def sizetailrec[A](tree: Tree[A]): Int = {
+
+    @tailrec def go(acc: Int, queue: List[Tree[A]]): Int = {
+      queue match {
+        case Nil => acc
+        case Leaf(_) :: xs => go(acc + 1, xs)
+        case Branch(left, right) :: xs => go(acc + 1, left :: right :: xs)
+      }
+    }
+
+    go(0, List(tree))
+  }
+
   def maximum(tree: Tree[Int]): Int = {
     tree match {
       case Leaf(x) => x
@@ -214,6 +233,32 @@ trait Chapter3Like extends Chapter2 {
       case Branch(left, right) => Branch(this.map(left)(f), this.map(right)(f))
     }
   }
+
+  // 3.29
+  def fold[A, B](tree: Tree[A], zero: B)(f: (B, A) => B)(g: (B, B) => B): B = {
+    tree match {
+      case Leaf(x) => f(zero, x)
+      case Branch(left, right) =>
+        val a: B = this.fold(left, zero)(f)(g)
+        val b: B = this.fold(right, zero)(f)(g)
+        g(a, b)
+    }
+  }
+
+
+  def foldTailRec[A, B](tree: Tree[A], zero: B)(f: (B, A) => B)(g: (B, B) => B): B = {
+
+    @tailrec def go(acc: B, queue: List[Tree[A]]): B = {
+      queue match {
+        case Nil => acc
+        case Leaf(a) :: trees => go(f(acc, a), trees)
+        case Branch(left, right) :: trees => go(g(acc, zero), left :: right :: trees)
+      }
+    }
+
+    go(zero, List(tree))
+  }
+
 }
 
 

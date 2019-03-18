@@ -12,6 +12,7 @@ class Chapter5Spec extends BaseSpec {
   // In contrast, a strict function always evaluates its arguments.
 
   // Due to technical limitations, these are thunks that must be explicitly forced, rather than by-name parameters.
+  // case class parameters
 
 
   "stream" should "work" in {
