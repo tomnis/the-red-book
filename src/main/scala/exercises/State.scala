@@ -70,23 +70,45 @@ object RNG {
 }
 
 // why is state not contravariant?
+// is there any significant difference with run = (S => (S, A))?
 case class StateM[S,+A](run: S => (A, S)) {
 
   def map[B](f: A => B): StateM[S, B] = {
-
-
+    StateM[S, B] { oldState =>
+      val (a, newState) = run(oldState)
+      (f(a), newState)
+    }
   }
 
-  def map2[B,C](sb: StateM[S, B])(f: (A, B) => C): StateM[S, C] =
-    ???
+  def map2[B,C](sb: StateM[S, B])(f: (A, B) => C): StateM[S, C] = {
+    StateM[S, C] { oldState =>
+      val (a, newState) = run(oldState)
+      val (b, newState2) = run(newState)
+      (f(a, b), newState2)
+    }
+  }
 
-  def flatMap[B](f: A => StateM[S, B]): StateM[S, B] =
-    ???
+  // going with the analogy of flatMap = map andThen flatten,
+  // run is like our "flatten"
+  def flatMap[B](f: A => StateM[S, B]): StateM[S, B] = {
+    StateM[S, B] { oldState =>
+      val (a, newState) = this.run(oldState)
+      f(a).run(newState)
+    }
+  }
 }
 
 
 object StateM {
 
+  def unit[S, A](a: A) = StateM(s => (a, s))
 
-  def unit[S, A]: StateM[S, A]
+  def sequence[S, A](sas: List[StateM[S, A]]): StateM[S, List[A]] = {
+    StateM[S, List[A]] { oldState =>
+      sas.foldLeft((unit[S, List[A]](List.empty[A]), oldState)) { case ((acc: StateM[Nothing, List[A]], os), elem: StateM[S, A]) =>
+        val (i, newState) = elem.run(os)
+        (i :: acc, newState)
+      }
+    }
+  }
 }
