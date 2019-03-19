@@ -18,6 +18,9 @@ object RNG {
     }
   }
 
+  // "a randomly generated a"
+  // note this encapsulates RNG (something with nextInt) as an "underlying source of randomness" and relies on external
+  // transformations from Int to A
   type Rand[+A] = RNG => (A, RNG)
 
   val int: Rand[Int] = _.nextInt
@@ -25,6 +28,7 @@ object RNG {
   def unit[A](a: A): Rand[A] =
     rng => (a, rng)
 
+  // transform the output of an action without further modifying state
   def map[A,B](s: Rand[A])(f: A => B): Rand[B] =
     rng => {
       val (a, rng2) = s(rng)
@@ -43,18 +47,46 @@ object RNG {
 
   def ints(count: Int)(rng: RNG): (List[Int], RNG) = ???
 
-  def map2[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = ???
+  // combine 2 rng actions into one
+  // 6.6
+  def map2[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = {
+    rng: RNG => {
+      val (a, rng2) = ra(rng)
+      val (b, rng3) = rb(rng2)
+      (f(a, b), rng3)
+    }
+  }
 
   def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = ???
 
-  def flatMap[A,B](f: Rand[A])(g: A => Rand[B]): Rand[B] = ???
+  //6.8
+  // generate a random A, then generate a random B based on that value
+  def flatMap[A,B](f: Rand[A])(g: A => Rand[B]): Rand[B] = {
+    rng: RNG => {
+      val (a, rng2) = f(rng)
+      g(a)(rng2)
+    }
+  }
 }
 
-case class State[S,+A](run: S => (A, S)) {
-  def map[B](f: A => B): State[S, B] =
+// why is state not contravariant?
+case class StateM[S,+A](run: S => (A, S)) {
+
+  def map[B](f: A => B): StateM[S, B] = {
+
+
+  }
+
+  def map2[B,C](sb: StateM[S, B])(f: (A, B) => C): StateM[S, C] =
     ???
-  def map2[B,C](sb: State[S, B])(f: (A, B) => C): State[S, C] =
+
+  def flatMap[B](f: A => StateM[S, B]): StateM[S, B] =
     ???
-  def flatMap[B](f: A => State[S, B]): State[S, B] =
-    ???
+}
+
+
+object StateM {
+
+
+  def unit[S, A]: StateM[S, A]
 }

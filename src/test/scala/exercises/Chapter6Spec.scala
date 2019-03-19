@@ -1,5 +1,7 @@
 package exercises
 
+import exercises.RNG.{Rand, Simple}
+
 /**
   * Created by tomas.mccandless on 2019-03-18.
   */
@@ -24,7 +26,6 @@ class Chapter6Spec extends BaseSpec {
 
   def double(rng: RNG): (Double, RNG) = {
     val (i, s) = rng.nextInt
-
     (i / Int.MaxValue.toDouble, s)
   }
 
@@ -68,7 +69,29 @@ class Chapter6Spec extends BaseSpec {
 
 
   // 6.5
-  def elegantDouble(rng: RNG): (Double, RNG) = {
+  def elegantDouble: Rand[Double] = {
+    RNG.map(RNG.int)(i => i.toDouble / Int.MaxValue.toDouble)
+  }
 
+
+  // 6.7
+  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = {
+    rng => {
+      fs.foldRight((List.empty[A], rng)) { case (rand: Rand[A], (acc: List[A], oldState: RNG)) =>
+        val (i, newRng) =  rand(oldState)
+        (i :: acc, newRng)
+      }
+    }
+  }
+
+
+  "sequence" should "work" in {
+    val s: RNG = Simple(42)
+    val r: Rand[Int] = s => s.nextInt
+    val q: Rand[String] = RNG.map(r)(_.toString)
+    val rs = List.fill(4)(q)
+
+    val seq = sequence(rs)
+    println(rs)
   }
 }
