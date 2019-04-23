@@ -42,7 +42,7 @@ class Chapter6Spec extends BaseSpec {
     val unlocked: Boolean = !this.locked
   }
 
-  def run(m: Machine, input: Input): Machine = {
+  def runInput(m: Machine, input: Input): Machine = {
     (m, input) match {
       // out of candy => ignore all inputs
       case (m, _) if m.candies < 1 => m
@@ -62,9 +62,11 @@ class Chapter6Spec extends BaseSpec {
     * @return number of coins and candies left in the machine
     */
   def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = {
-    State[Machine, (Int, Int)] { s =>
-
-
+    State[Machine, (Int, Int)] { oldMachine =>
+      val newMachine: Machine = inputs.foldLeft(oldMachine) {
+        case (lastMachine, input) => runInput(lastMachine, input)
+      }
+      ((newMachine.candies, newMachine.coins), newMachine)
     }
   }
 
@@ -73,8 +75,23 @@ class Chapter6Spec extends BaseSpec {
     // input types: coin, turn knob
     // states: locked or unlocked
     // tracks how many candies are left, how many coins it contains
+    val m1: Machine = Machine(true, 1, 0)
+    val expected: Machine = Machine(true, 0, 1)
 
+    // putting a coin in a locked machine should unlock it
+    simulateMachine(List(Coin)).run(m1)._2 should be (Machine(false, 1, 1))
+    // turning an unlocked machine should lock it and release candy
+    simulateMachine(List(Coin, Turn)).run(m1)._2 should be (expected)
+    // further inputs to an empty machine should be ignored
+    simulateMachine(List(Coin, Turn, Coin)).run(m1)._2 should be (expected)
+    simulateMachine(List(Coin, Turn, Turn)).run(m1)._2 should be (expected)
 
+    // unlocked machine should ignore a coin
+    val m2: Machine = Machine(false, 1, 0)
+    simulateMachine(List(Coin)).run(m2)._2 should be (m2)
 
+    // locked machine should ignore a turn
+    val m3: Machine = Machine(true, 1, 0)
+    simulateMachine(List(Turn)).run(m3)._2 should be (m3)
   }
 }

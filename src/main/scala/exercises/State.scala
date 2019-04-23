@@ -157,6 +157,12 @@ object RNG {
 // why is state not contravariant?
 // is there any significant difference with run = (S => (S, A))?
 // 6.10
+/**
+  *
+  * @param run
+  * @tparam S type of underlying state
+  * @tparam A new values generated
+  */
 case class State[S,+A](run: S => (A, S)) {
   import State._
 
