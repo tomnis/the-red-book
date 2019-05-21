@@ -2,6 +2,7 @@ package exercises
 
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.{Callable, CountDownLatch, ExecutorService, TimeUnit}
+import scala.util.{Left, Right}
 
 /**
   *
@@ -17,7 +18,7 @@ object Par {
 
   // combine async computations without waiting for them to finish
 
-  type Par[+A] = ExecutorService => Future[A]
+  type Par[+A] = ExecutorService => AsyncFuture[A]
 
   /**
     * Creates a computation that immediately results in the value `a`.
@@ -27,13 +28,10 @@ object Par {
     * @tparam A
     * @return
     */
-  def unit[A](a: A): Par[A] = (es: ExecutorService) => UnitFuture(a)
-
-  private case class UnitFuture[A](get: A) extends Future[A] {
-    def isDone = true
-    def get(timeout: Long, units: TimeUnit) = get
-    def isCancelled = false
-    def cancel(evenIfRunning: Boolean): Boolean = false
+  def unit[A](a: A): Par[A] = {
+    es => new AsyncFuture[A] {
+      def apply(cb: A => Unit): Unit = cb(a)
+    }
   }
 
 
@@ -50,11 +48,24 @@ object Par {
     * @tparam C
     * @return
     */
-  def map2[A, B, C](a: Par[A], b: Par[B])(f: (A, B) => C): Par[C] = {
-    es: ExecutorService => {
-      val af = a(es)
-      val bf = b(es)
-      UnitFuture (f(af.get, bf.get))
+  def map2[A,B,C](p: Par[A], p2: Par[B])(f: (A,B) => C): Par[C] = {
+    es => new AsyncFuture[C] {
+      def apply(cb: C => Unit): Unit = {
+        var ar: Option[A] = None
+        var br: Option[B] = None
+        val combiner: Actor[Either[A, B]] = Actor[Either[A,B]](es) {
+          case Left(a: A) => br match {
+            case None => ar = Some(a)
+            case Some(b) => eval(es)(cb(f(a, b)))
+          }
+          case Right(b: B) => ar match {
+            case None => br = Some(b)
+            case Some(a) => eval(es)(cb(f(a, b)))
+          }
+        }
+        p(es)(a => combiner ! Left(a))
+        p2(es)(b => combiner ! Right(b))
+      }
     }
   }
 
@@ -71,9 +82,16 @@ object Par {
     * @return
     */
   def fork[A](a: => Par[A]): Par[A] = {
-    es: ExecutorService => es.submit(
-      new Callable[A] {
-        override def call: A = a(es).get
+     es: ExecutorService => new AsyncFuture[A] {
+      override def apply(cb: A => Unit): Unit = eval(es)(a(es)(cb))
+    }
+  }
+
+
+  def eval(es: ExecutorService)(r: => Unit): Unit = {
+    es.submit(
+      new Callable[Unit] {
+        override def call: Unit = r
       }
     )
   }
@@ -155,6 +173,6 @@ object Par {
 }
 
 
-sealed trait Future[A] {
+sealed trait AsyncFuture[+A] {
   private[exercises] def apply(k: A => Unit): Unit
 }

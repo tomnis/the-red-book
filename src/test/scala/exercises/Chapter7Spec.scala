@@ -10,13 +10,13 @@ import Par._
   */
 class Chapter7Spec extends BaseSpec {
 
-  val pool: ExecutorService = Executors.newFixedThreadPool(4)
+//  val pool: ExecutorService = Executors.newFixedThreadPool(4)
 
-  def equal[A](e: ExecutorService)(p: Par[A], p2: Par[A]): Boolean = p(e).get == p2(e).get
+  def equal[A](e: ExecutorService)(p: Par[A], p2: Par[A]): Boolean = Par.run(e)(p) == Par.run(e)(p2)
 
   "async" should "work" in {
 
-    equal(pool)(map(unit(1))(_ + 1), unit(2)) should be (true)
+//    equal(pool)(map(unit(1))(_ + 1), unit(2)) should be (true)
   }
 
   "fork" should "deadlock" in {
@@ -27,6 +27,12 @@ class Chapter7Spec extends BaseSpec {
     val b = Par.map(a)(_ + 1)
     val S = Executors.newFixedThreadPool(2)
     println(equal(S)(fork(b), fork(a)))
+  }
+
+  "actors" should "work" in {
+    val p : Par[List[Double]] = Par.parMap(List.range(1, 10))(math.sqrt(_))
+    val x: Seq[Double] = Par.run(Executors.newFixedThreadPool(2))(p)
+    println(x take 3)
   }
 
 

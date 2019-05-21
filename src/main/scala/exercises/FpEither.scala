@@ -8,24 +8,24 @@ package exercises
 sealed trait FpEither[+E, +A] {
   def map[B](f: A => B): FpEither[E, B] = {
     this match {
-      case Left(e) => Left(e)
-      case Right(value) => Right(f(value))
+      case FpLeft(e) => FpLeft(e)
+      case FpRight(value) => FpRight(f(value))
     }
   }
 
 
   def flatMap[EE >: E, B](f: A => FpEither[EE, B]): FpEither[EE, B] = {
     this match {
-      case Left(e) => Left(e)
-      case Right(value) => f(value)
+      case FpLeft(e) => FpLeft(e)
+      case FpRight(value) => f(value)
     }
 //    this.map(f).orElse()
   }
 
   def orElse[EE >: E,B >: A](b: => FpEither[EE, B]): FpEither[EE, B] = {
     this match {
-      case Left(e) => b
-      case Right(value) => this
+      case FpLeft(e) => b
+      case FpRight(value) => this
     }
   }
 
@@ -38,5 +38,5 @@ sealed trait FpEither[+E, +A] {
   }
 }
 
-case class Left[+E](value: E) extends FpEither[E, Nothing]
-case class Right[+A](value: A) extends FpEither[Nothing, A]
+case class FpLeft[+E](value: E) extends FpEither[E, Nothing]
+case class FpRight[+A](value: A) extends FpEither[Nothing, A]
