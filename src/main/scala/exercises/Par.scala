@@ -1,7 +1,7 @@
 package exercises
 
 import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.{Callable, CountDownLatch, ExecutorService, TimeUnit}
+import java.util.concurrent._
 
 /**
   *
@@ -17,7 +17,7 @@ object Par {
 
   // combine async computations without waiting for them to finish
 
-  type Par[+A] = ExecutorService => Future[A]
+  type Par[A] = ExecutorService => Future[A]
 
   /**
     * Creates a computation that immediately results in the value `a`.
@@ -102,15 +102,7 @@ object Par {
     * @tparam A
     * @return
     */
-  def run[A](es: ExecutorService)(p: Par[A]): A = {
-    // mutable threadsafe reference for storing result
-    val ref = new AtomicReference[A]
-    // wait until method is called the specified number of times
-    val latch = new CountDownLatch(1)
-    p(es) { a => ref.set(a); latch.countDown }
-    latch.await()
-    ref.get
-  }
+  def run[A](s: ExecutorService)(a: Par[A]): Future[A] = a(s)
 
 
   def sum(ints: List[Int]): Par[Int] = {
@@ -152,9 +144,68 @@ object Par {
   // map(map(y)(g))(f) == map(y)(f compose g)
 
   def delay[A](fa: => Par[A]): Par[A] = (es: ExecutorService) => fa(es)
+
+
+  // 7.11
+  def choiceN[A](n: Par[Int])(choices: List[Par[A]]): Par[A] = {
+    es => {
+      val ind: Int = run(es)(n).get
+      run(es)(choices(ind))
+    }
+  }
+
+
+  def choice[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] = {
+    val ind: Par[Int] = map(cond)(c => if (c) 0 else 1)
+    choiceN(ind)(List(t, f))
+  }
+
+  // 7.12
+  def choiceMap[K,V](key: Par[K])(choices: Map[K,Par[V]]): Par[V] = {
+    es => {
+      val k: K = run(es)(key).get
+      run(es)(choices(k))
+    }
+  }
+
+
+  // 7.13
+  def chooser[A,B](pa: Par[A])(choices: A => Par[B]): Par[B] = {
+    es => {
+      val a: A = run(es)(pa).get
+      run(es)(choices(a))
+    }
+  }
+
+  def choiceChooser[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] = {
+    chooser[Boolean, A](cond)((b: Boolean) => if (b) t else f)
+  }
+
+  def choiceNChooser[A](n: Par[Int])(choices: List[Par[A]]): Par[A] = {
+    chooser[Int, A](n)((ind: Int) => choices(ind))
+  }
+
+
+  // 7.14
+  def join[A](a: Par[Par[A]]): Par[A] = {
+    es => {
+      run(es)(run(es)(a).get())
+    }
+  }
+
+  // flatmap using join
+  // map and then flatten
+  def flatMapJoin[A,B](a: Par[A])(f: A => Par[B]): Par[B] = {
+    join(map(a)(f))
+  }
+
+  // join using flatMap
+  def joinFlatMap[A](a: Par[Par[A]]): Par[A] = {
+    flatMapJoin[Par[A], A](a)(x => x)
+  }
 }
 
 
-sealed trait Future[A] {
-  private[exercises] def apply(k: A => Unit): Unit
-}
+//sealed trait Future[A] {
+//  private[exercises] def apply(k: A => Unit): Unit
+//}

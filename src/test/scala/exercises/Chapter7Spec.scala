@@ -20,13 +20,9 @@ class Chapter7Spec extends BaseSpec {
   }
 
   "fork" should "deadlock" in {
-//    val a = lazyUnit(42 + 1)
-//    val S = Executors.newFixedThreadPool(1)
-//    println(equal(S)(a, fork(a)))
     val a = lazyUnit(42 + 1)
-    val b = Par.map(a)(_ + 1)
-    val S = Executors.newFixedThreadPool(2)
-    println(equal(S)(fork(b), fork(a)))
+    val S = Executors.newFixedThreadPool(1)
+    println(equal(S)(a, fork(a)))
   }
 
 
