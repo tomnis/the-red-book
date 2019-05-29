@@ -2,7 +2,8 @@ package exercises
 
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.{Callable, CountDownLatch, ExecutorService, TimeUnit}
-import scala.util.{Left, Right}
+
+import scala.util.{Failure, Left, Right, Success, Try}
 
 /**
   *
@@ -30,7 +31,7 @@ object Par {
     */
   def unit[A](a: A): Par[A] = {
     es => new AsyncFuture[A] {
-      def apply(cb: A => Unit): Unit = cb(a)
+      def apply(cb: A => Unit, onError: Throwable => Unit): Unit = cb(a)
     }
   }
 
@@ -50,21 +51,21 @@ object Par {
     */
   def map2[A,B,C](p: Par[A], p2: Par[B])(f: (A,B) => C): Par[C] = {
     es => new AsyncFuture[C] {
-      def apply(cb: C => Unit): Unit = {
+      def apply(cb: C => Unit, onError: Throwable => Unit): Unit = {
         var ar: Option[A] = None
         var br: Option[B] = None
         val combiner: Actor[Either[A, B]] = Actor[Either[A,B]](es) {
           case Left(a: A) => br match {
             case None => ar = Some(a)
-            case Some(b) => eval(es)(cb(f(a, b)))
+            case Some(b) => eval(es)(cb(f(a, b)), onError)
           }
           case Right(b: B) => ar match {
             case None => br = Some(b)
-            case Some(a) => eval(es)(cb(f(a, b)))
+            case Some(a) => eval(es)(cb(f(a, b)), onError)
           }
         }
-        p(es)(a => combiner ! Left(a))
-        p2(es)(b => combiner ! Right(b))
+        p(es)(a => combiner ! Left(a), onError)
+        p2(es)(b => combiner ! Right(b), onError)
       }
     }
   }
@@ -83,15 +84,15 @@ object Par {
     */
   def fork[A](a: => Par[A]): Par[A] = {
      es: ExecutorService => new AsyncFuture[A] {
-      override def apply(cb: A => Unit): Unit = eval(es)(a(es)(cb))
+      override def apply(cb: A => Unit, onError: Throwable => Unit): Unit = eval(es)(a(es)(cb, onError), onError)
     }
   }
 
 
-  def eval(es: ExecutorService)(r: => Unit): Unit = {
+  def eval(es: ExecutorService)(r: => Unit, onError: Throwable => Unit): Unit = {
     es.submit(
       new Callable[Unit] {
-        override def call: Unit = r
+        override def call: Unit = try r catch { case t: Throwable => onError(t) }
       }
     )
   }
@@ -122,12 +123,16 @@ object Par {
     */
   def run[A](es: ExecutorService)(p: Par[A]): A = {
     // mutable threadsafe reference for storing result
-    val ref = new AtomicReference[A]
+    val ref = new AtomicReference[Try[A]]
     // wait until method is called the specified number of times
     val latch = new CountDownLatch(1)
-    p(es) { a => ref.set(a); latch.countDown }
+    p(es).apply(
+      {a => ref.set(Success(a)); latch.countDown()},
+      {t => ref.set(Failure(t)); latch.countDown()}
+    )
     latch.await()
-    ref.get
+    println(s"done waiting for latch")
+    ref.get.get
   }
 
 
@@ -152,7 +157,7 @@ object Par {
 
   // 7.5
   def sequence[A](ps: List[Par[A]]): Par[List[A]] = {
-    ps.foldRight(unit[List[A]](Nil)) { case (par: Par[A], acc: List[Par[A]]) =>
+    ps.foldRight(unit[List[A]](Nil)) { case (par, acc) =>
       map2(par, acc)(_ :: _)
     }
   }
@@ -174,5 +179,5 @@ object Par {
 
 
 sealed trait AsyncFuture[+A] {
-  private[exercises] def apply(k: A => Unit): Unit
+  private[exercises] def apply(k: A => Unit, onError: Throwable => Unit): Unit
 }

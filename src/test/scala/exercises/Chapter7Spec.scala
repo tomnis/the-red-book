@@ -14,9 +14,9 @@ class Chapter7Spec extends BaseSpec {
 
   def equal[A](e: ExecutorService)(p: Par[A], p2: Par[A]): Boolean = Par.run(e)(p) == Par.run(e)(p2)
 
-  "async" should "work" in {
-
-//    equal(pool)(map(unit(1))(_ + 1), unit(2)) should be (true)
+  "async" should "fail" in {
+    val p: Par[Int] = map(unit(2))(a => a / 0)
+    Par.run(Executors.newFixedThreadPool(1))(p)
   }
 
   "fork" should "deadlock" in {
