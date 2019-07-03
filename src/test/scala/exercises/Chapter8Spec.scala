@@ -1,5 +1,7 @@
 package exercises
 
+import java.util.concurrent.{ExecutorService, Executors}
+
 import SGen._
 import Prop._
 
@@ -26,6 +28,7 @@ class Chapter8Spec extends BaseSpec {
   }
 
   "par" should "work" in {
+    val ES: ExecutorService = Executors.newCachedThreadPool
     val p2 = Prop.check {
       val p = Par.map(Par.unit(1))(_ + 1) val p2 = Par.unit(2)
       p(ES).get == p2(ES).get
