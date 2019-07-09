@@ -115,8 +115,8 @@ object Monoids {
       // split in two
       val (left, right) = split(v)
       // recursively process each half
-      val l = foldMapV(left, m)(f)
-      val r = foldMapV(right, m)(f)
+      val l: B = foldMapV(left, m)(f)
+      val r: B = foldMapV(right, m)(f)
       // combine answers with monoid
       m.op(l, r)
     }
@@ -137,21 +137,55 @@ object Monoids {
   }
 
 
+  // should we be concerned about stack safety?
   def parFoldMap[A,B](v: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] = {
     val parM: Monoid[Par[B]] = par(m)
     if (v.isEmpty) parM.zero
     else if (v.length == 1) Par.lazyUnit(f(v.head))
     else {
       val (left, right) = split(v)
-      val l = parFoldMap(left, m)(f)
-      val r = parFoldMap(right, m)(f)
+      val l: Par[B] = parFoldMap(left, m)(f)
+      val r: Par[B] = parFoldMap(right, m)(f)
       parM.op(l, r)
     }
   }
 
 
-  def isOrdered[A](v: IndexedSeq[A])(implicit ordered: Ordered[A]): Boolean = {
-    val m: Monoid
+  // 10.9
+  // use foldmap (like map + fold) to check if ordered
+  def isOrdered[A](v: IndexedSeq[A])(implicit ordering: Ordering[A]): Boolean = {
+    val m: Monoid[Boolean] = new Monoid[Boolean] {
+      override def op(a: Boolean, b: Boolean): Boolean = a && b
+      override def zero: Boolean = true
+    }
 
+    if (v.size < 2) true
+    else {
+      val data: IndexedSeq[(A, A)] = v.sliding(2).map {
+        case IndexedSeq(a, b) => (a, b)
+      }.toArray[(A, A)]
+
+      val compare: (A, A) => Boolean = (a1: A, a2: A) => ordering.compare(a1, a2) >= 0
+      foldMapV(data, m)(compare.tupled)
+    }
   }
+
+  // 10.10
+  sealed trait WC
+  case class Stub(chars: String) extends WC
+  case class Part(lStub: String, words: Int, rStub: String) extends WC
+
+  val wcMonoid: Monoid[WC] = new Monoid[WC] {
+    override def op(a1: WC, a2: WC): WC = {
+      case (Stub(s1), Stub(s2)) => Stub(s1 + s2)
+      case (Stub(s1), Part(left, count, right)) => Part(s1 + left, count, right)
+    }
+
+    override def zero: WC = Stub("")
+  }
+
+  // 10.11
+//  def countWords(s: String): Int = {
+//    foldMapV(s, wcMonoid)()
+//  }
 }
