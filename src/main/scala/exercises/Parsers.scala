@@ -26,19 +26,23 @@ trait Parsers[Parser[+_]] { self =>
   // primitive
   def slice[A](p: Parser[A]): Parser[String]
 
-  def many[A](p: Parser[A]): Parser[List[A]]
-  def many1[A](p: Parser[A]): Parser[List[A]]
+  // zero or more
+  def many[A](p: Parser[A]): Parser[List[A]] = many1(p).or(succeed(Nil))
+
+  // one or more
+  def many1[A](p: Parser[A]): Parser[List[A]] = map2(p, many(p)) { case (a, as) => a :: as }
 
   def map[A, B](a: Parser[A])(f: A => B): Parser[B]
 
-  def map2[A, B, C](p: Parser[A], p2: => Parser[B])(f: (A, B) => C): Parser[C]
+  def map2[A, B, C](p: Parser[A], p2: => Parser[B])(f: (A, B) => C): Parser[C] = product(p, p2) map { case (a, b) => f(a, b) }
 
-  def succeed[A](a: A): Parser[A]
+  def succeed[A](a: A): Parser[A] = string("") map (_ => a)
 
   // primitive
   def flatMap[A, B](p: Parser[A])(f: A => Parser[B]): Parser[B]
 
 
+  // place primary definitions directly in Parsers and delegate in ParserOps to that primary definition
   case class ParserOps[A](p: Parser[A]) {
 
     def |[B >: A](p2: => Parser[B]): Parser[B] = self.or(p, p2)
@@ -65,7 +69,11 @@ trait Parsers[Parser[+_]] { self =>
 
 
   object Laws {
+    import Prop.forAll
+    def equal[A](p1: Parser[A], p2: Parser[A])(in: Gen[String]): Prop =
+      forAll(in)(s => run(p1)(s) == run(p2)(s))
 
+    def mapLaw[A](p: Parser[A])(in: Gen[String]): Prop = equal(p, p.map(a => a))(in)
   }
 }
 

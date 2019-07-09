@@ -29,12 +29,13 @@ class Chapter8Spec extends BaseSpec {
   }
 
   "par" should "work" in {
-    val es: ExecutorService = Executors.newFixedThreadPool(2)
-    val p2 = Prop.check {
-      val p: Par[SuccessCount] = Par.map(Par.unit(1))(_ + 1)
-      val p2: Par[SuccessCount] = Par.unit(2)
-      Par.run(es)(p) == Par.run(es)(p2)
+    val es: ExecutorService = Executors.newCachedThreadPool
+    val p2: Prop = Prop.check {
+      val par: Par[SuccessCount] = Par.map(Par.unit(1))(_ + 1)
+      val par2: Par[SuccessCount] = Par.unit(2)
+      Par.run(es)(par) == Par.run(es)(par2)
     }
-  }
 
+    Prop.run(p2)
+  }
 }

@@ -6,6 +6,7 @@ package exercises
   */
 case class Gen[+A](sample: State[RNG,A]) {
 
+  // 8.6
   def flatMap[B](f: A => Gen[B]): Gen[B] = {
     Gen(this.sample.flatMap(a => f(a).sample))
   }
@@ -19,7 +20,7 @@ case class Gen[+A](sample: State[RNG,A]) {
 
 
   // 8.10
-  def unsized: SGen[A] = SGen[A](_ => this)
+  def unsized: SGen[A] = SGen[A]((x: Int) => this)
 }
 
 
@@ -29,6 +30,10 @@ object Gen {
   def choose(start: Int, stopExclusive: Int): Gen[Int] = {
 
     Gen(State(RNG.nonNegativeInt).map(n => start + n % (stopExclusive - start)))
+  }
+
+  def bytes: Gen[Byte] = {
+    Gen.choose(0, 256).flatMap(n => Gen.unit[Byte](n.toByte))
   }
 
   // 8.5

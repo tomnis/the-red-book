@@ -176,7 +176,7 @@ object Monoids {
   case class Part(lStub: String, words: Int, rStub: String) extends WC
 
   val wcMonoid: Monoid[WC] = new Monoid[WC] {
-    override def op(a1: WC, a2: WC): WC = {
+    override def op(a1: WC, a2: WC): WC = (a1, a2) match {
       case (Stub(s1), Stub(s2)) => Stub(s1 + s2)
       case (Stub(s1), Part(left, count, right)) => Part(s1 + left, count, right)
     }
