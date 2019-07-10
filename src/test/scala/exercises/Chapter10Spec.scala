@@ -9,7 +9,7 @@ class Chapter10Spec extends BaseSpec {
   "option monoid" should "work" in {
     val om = Monoids.optionMonoid[Int]
     // associative
-    om.op(Option(1), om.op(Option(2), Option(3))) should be (om.op(om.op(Option(1), Option(2)), Option(3)))
+    om.combine(Option(1), om.combine(Option(2), Option(3))) should be (om.combine(om.combine(Option(1), Option(2)), Option(3)))
   }
 
 
@@ -28,5 +28,9 @@ class Chapter10Spec extends BaseSpec {
     Monoids.isOrdered(IndexedSeq(4,3,2,1))(ordering) should be (false)
     Monoids.isOrdered(IndexedSeq(1,2,4,3))(ordering) should be (false)
 
+  }
+
+  "count" should "work" in {
+    Monoids.countWords("a b c") should be (3)
   }
 }
