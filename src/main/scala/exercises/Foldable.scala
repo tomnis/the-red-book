@@ -1,5 +1,7 @@
 package exercises
 
+import scala.languageFeature.higherKinds
+
 /**
   *
   * Created by tdm on 2019-07-09.
@@ -36,6 +38,7 @@ object IndexedSeqIsFoldable extends Foldable[IndexedSeq] {
 
 
 import scala.collection.immutable.{Stream => StdLibStream}
+import scala.language.higherKinds
 object StreamIsFoldable extends Foldable[StdLibStream] {
   override def foldRight[A, B](as: StdLibStream[A])(zero: B)(f: (A, B) => B): B = as.foldRight(zero)(f)
 
