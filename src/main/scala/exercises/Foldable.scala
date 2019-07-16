@@ -45,10 +45,6 @@ object StreamIsFoldable extends Foldable[StdLibStream] {
 }
 
 
-sealed trait Tree[+A]
-case class Leaf[A](value: A) extends Tree[A]
-case class Branch[A](left: Tree[A], right: Tree[A]) extends Tree[A]
-
 
 object TreeIsFoldable extends Foldable[Tree] {
   override def foldRight[A, B](as: Tree[A])(zero: B)(f: (A, B) => B): B = as match {
