@@ -7,6 +7,9 @@ import exercises.Par.Par
 import scala.language.higherKinds
 
 /**
+  * Results of previous computations may influence which computations
+  * are next. Contrasted with Applicative, where the structure of
+  * computation is fixed.
   *
   * Created by tdm on 2019-07-15.
   */
@@ -146,6 +149,16 @@ object Monads {
         val b: A = fa.run(r)
         f(b).run(r)
       }
+    }
+  }
+
+
+  // 12.5
+  def eitherMonad[E]: Monad[({type f[x] = Either[E, x]})#f] = new Monad[({type f[x] = Either[E, x]})#f] {
+    override def unit[A](a: => A): Either[E, A] = Right(a)
+
+    override def flatMap[A, B](fa: Either[E, A])(f: A => Either[E, B]): Either[E, B] = {
+      fa.flatMap(f)
     }
   }
 }

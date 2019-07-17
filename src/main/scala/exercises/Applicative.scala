@@ -2,6 +2,7 @@ package exercises
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
+import scala.util.{Failure, Success, Try}
 
 /**
   *
@@ -79,5 +80,29 @@ trait Applicative[F[_]] extends Functor[F] {
     val fcde: F[C => D => E] = this.apply(fbcde)(fb)
     val fde: F[D => E] = this.apply(fcde)(fc)
     this.apply(fde)(fd)
+  }
+}
+
+
+object Applicatives {
+
+  def validationApplicative[E]: Applicative[({
+    type f[x] = Validation[E, x]
+  })#f] = new Applicative[({type f[x] = Validation[E, x]})#f] {
+    override def map2[A, B, C](fa: Validation[E, A], fb: Validation[E, B])(f: (A, B) => C): Validation[E, C] = {
+      (fa, fb) match {
+        case (Invalid(h1, t1), Invalid(h2, t2)) => Invalid(h1, (t1 :+ h2) ++ t2)
+        case (i@ Invalid(_, _), Valid(_)) => i
+        case (Valid(_), i@ Invalid(_, _)) => i
+//        case (Valid(a1), Valid(a2)) => Try(f(a1, a2)) match {
+//          case Success(c) => Valid(c)
+//          case Failure(err) => Invalid(err)
+//        }
+        case (Valid(a1), Valid(a2)) => Valid(f(a1, a2))
+      }
+
+    }
+
+    override def unit[A](a: => A): Validation[E, A] = Validation(a)
   }
 }
