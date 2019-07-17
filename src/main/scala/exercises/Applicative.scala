@@ -1,5 +1,6 @@
 package exercises
 
+import scala.annotation.tailrec
 import scala.language.higherKinds
 
 /**
@@ -26,10 +27,35 @@ trait Applicative[F[_]] extends Functor[F] {
     }
   }
 
+  // 12.1
+  @tailrec
+  final def foldLeft[A,B](as: List[A], z: B)(f: (B, A) => B): B = {
+    as match {
+      case Nil => z
+      case x :: xs => foldLeft(xs, f(z, x))(f)
+    }
+  }
+
+  def sequence[A](lma: List[F[A]]): F[List[A]] = {
+    val reversed = lma.foldLeft(this.unit(List.empty[A])) { case (acc: F[List[A]], a: F[A]) =>
+      this.map2(a, acc)(_ :: _)
+    }
+
+    this.map(reversed)(_.reverse)
+  }
+
+  // 11.4
+  // almost the opposite of fold
+  def replicateM[A](n: Int, ma: F[A]): F[List[A]] = {
+    this.map(ma)(a => List.fill(n)(a))
+  }
+
+
+
 
   // 12.2
   // alternate primitive with unit
-  def apply[A, B](fab: F[A => B])(fa: F[A]): F[B]
+  def apply[A, B](fab: F[A => B])(fa: F[A]): F[B] = ???
 
   def map2viaApply[A, B, C](fa: F[A], fb: F[B])(f: (A, B) => C): F[C] = {
     val fbc: F[B => C] = this.apply(this.unit(f.curried))(fa)

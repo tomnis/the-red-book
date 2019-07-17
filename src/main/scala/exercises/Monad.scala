@@ -4,41 +4,13 @@ import java.util.concurrent.Executors
 
 import exercises.Par.Par
 
-import scala.annotation.tailrec
 import scala.language.higherKinds
 
 /**
   *
   * Created by tdm on 2019-07-15.
   */
-trait Functor[F[_]] {
-
-  /**
-    * map(x)(a => a) = x
-    *
-    * @param fa
-    * @param f
-    * @tparam A
-    * @tparam B
-    * @return
-    */
-  def map[A, B](fa: F[A])(f: A => B): F[B]
-
-
-  // unzip
-  def distribute[A, B](fab: F[(A, B)]): (F[A], F[B]) = {
-    (this.map(fab)(_._1), this.map(fab)(_._2))
-  }
-
-
-  def codistribute[A, B](eab: Either[F[A], F[B]]): F[Either[A, B]] = eab match {
-    case Left(fa) => map(fa)(Left.apply)
-    case Right(fb) => map(fb)(Right.apply)
-  }
-
-
-}
-trait Monad[F[_]] extends Functor[F] {
+trait Monad[F[_]] extends Applicative[F] {
 
   def unit[A](a: => A): F[A]
 
@@ -50,36 +22,6 @@ trait Monad[F[_]] extends Functor[F] {
 
   def map2[A, B, C](fa: F[A], fb: F[B])(f: (A, B) => C): F[C] = {
     this.flatMap(fa)(a => this.map(fb)(b => f(a, b)))
-  }
-
-  @tailrec
-  final def foldLeft[A,B](as: List[A], z: B)(f: (B, A) => B): B = {
-    as match {
-      case Nil => z
-      case x :: xs => foldLeft(xs, f(z, x))(f)
-    }
-  }
-
-  // 11.3
-  def sequence[A](lma: List[F[A]]): F[List[A]] = {
-    val reversed = lma.foldLeft(this.unit(List.empty[A])) { case (acc: F[List[A]], a: F[A]) =>
-        this.map2(a, acc)(_ :: _)
-    }
-
-    this.map(reversed)(_.reverse)
-  }
-
-
-  def traverse[A, B](la: List[A])(f: A => F[B]): F[List[B]] = {
-    la.foldRight(this.unit(List.empty[B])) { case (a: A, maybeAcc: F[List[B]]) =>
-      this.map2(f(a), maybeAcc)(_ :: _)
-    }
-  }
-
-  // 11.4
-  // almost the opposite of fold
-  def replicateM[A](n: Int, ma: F[A]): F[List[A]] = {
-    this.map(ma)(a => List.fill(n)(a))
   }
 
   // 11.6
@@ -216,6 +158,3 @@ case class Id[A](value: A) {
 
 
 case class Reader[R, A](run: R => A)
-
-
-
