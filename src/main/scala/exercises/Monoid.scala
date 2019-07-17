@@ -68,10 +68,11 @@ object Monoids {
 
    // 10.3
    def endoMonoid[A]: Monoid[A => A] = new Monoid[A => A] {
-     private[this] val id: A => A = (a: A) => a
-     override val zero: A => A = id
+     type F = A => A
+     private[this] val id: F = (a: A) => a
+     override val zero: F = id
      // TODO check order
-     override def combine(a1: A => A, a2: A => A): A => A = a1.compose(a2)
+     override def combine(a1: F, a2: F): A => A = a1.compose(a2)
    }
 
 
@@ -87,7 +88,7 @@ object Monoids {
 
     val m = new Monoid[A] {
       override val zero: A = z
-      override def combine(a1: A, a2: A): A = combine(a1, a2)
+      override def combine(a1: A, a2: A): A = op(a1, a2)
     }
 
     foldMap(as, m)((a: A) => a)
@@ -98,7 +99,7 @@ object Monoids {
 
     val m = new Monoid[A] {
       override val zero: A = z
-      override def combine(a1: A, a2: A): A = combine(a1, a2)
+      override def combine(a1: A, a2: A): A = op(a1, a2)
     }
 
     foldMap(as.reverse, m)((a: A) => a)
@@ -124,8 +125,9 @@ object Monoids {
   }
 
   def split[A](v: IndexedSeq[A]): (IndexedSeq[A], IndexedSeq[A]) = {
-    val mid: Int = v.length / 2
-    (v.slice(0, mid), v.slice(mid, v.length))
+//    val mid: Int = v.length / 2
+//    (v.slice(0, mid), v.slice(mid, v.length))
+    v.splitAt(v.length / 2)
   }
 
 
@@ -245,7 +247,9 @@ object Monoids {
 
   // 10.18
   def bag[A](as: IndexedSeq[A]): Map[A, Int] = {
-    foldMapV(as, mapMergeMonoid[A, Int](intAddition))((a: A) => Map(a -> 1))
-
+    foldMapV(
+      as,
+      mapMergeMonoid[A, Int](intAddition)
+    )((a: A) => Map(a -> 1))
   }
 }

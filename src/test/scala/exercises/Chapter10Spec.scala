@@ -1,5 +1,7 @@
 package exercises
 
+import exercises.Monoids.Stub
+
 /**
   *
   * Created by tdm on 2019-07-03.
@@ -32,5 +34,9 @@ class Chapter10Spec extends BaseSpec {
 
   "count" should "work" in {
     Monoids.countWords("a b c") should be (3)
+  }
+
+  "wc" should "?" in {
+    Monoids.wcMonoid.combine(Stub("a"), Stub("b"))
   }
 }
