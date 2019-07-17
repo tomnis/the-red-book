@@ -202,7 +202,7 @@ object Monads {
     override def flatMap[A, B](fa: Reader[R, A])(f: A => Reader[R, B]): Reader[R, B] = {
       Reader { r: R =>
         val b: A = fa.run(r)
-        f(b)
+        f(b).run(r)
       }
     }
   }
