@@ -84,7 +84,7 @@ trait Monad[F[_]] extends Functor[F] {
 
   // 11.6
   def filterM[A](ms: List[A])(f: A => F[Boolean]): F[List[A]] = {
-    ms.foldRight(unit(List.empty[A])) { case (x, y) =>
+    ms.foldRight(unit(List.empty[A])) { case (x: A, y: F[List[A]]) =>
       compose(f, (b: Boolean) => if (b) map2(unit(x), y)(_ :: _) else y)(x)
     }
   }
@@ -93,7 +93,7 @@ trait Monad[F[_]] extends Functor[F] {
   // 11.7
   def compose[A, B, C](f: A => F[B], g: B => F[C]): A => F[C] = {
     a: A => {
-      this.flatMap(f(a))(g)
+      flatMap(f(a))(g)
     }
   }
 
@@ -113,7 +113,7 @@ trait Monad[F[_]] extends Functor[F] {
 
   // 11.12
   def join[A](mma: F[F[A]]): F[A] = {
-    this.flatMap(mma)((ma: F[A]) => ma)
+    this.flatMap(mma)(identity)
   }
 }
 
@@ -185,10 +185,14 @@ object Monads {
     override def unit[A](a: => A): Id[A] = Id(a)
 
     override def flatMap[A, B](fa: Id[A])(f: A => Id[B]): Id[B] = fa.flatMap(f)
+
   }
 
 
-  object IntStateMonad extends Monad[({type IntState[A] = State[Int, A]})#IntState] {
+
+
+  type IntState[A] = State[Int, A]
+  object IntStateMonad extends Monad[IntState] {
     override def unit[A](a: => A): State[Int, A] = State(s => (a, s))
 
     override def flatMap[A, B](fa: State[Int, A])(f: A => State[Int, B]): State[Int, B] = fa.flatMap(f)
@@ -201,11 +205,14 @@ object Monads {
 
     override def flatMap[A, B](fa: Reader[R, A])(f: A => Reader[R, B]): Reader[R, B] = {
       Reader { r: R =>
-        val b: A = fa.run(r)
-        f(b)
+        val a: A = fa.run(r)
+        f(a).run(r)
+        f(fa.run(r)).run(r)
       }
     }
   }
+
+  //val m: Monad[Int] = readerMonad[Int]
 }
 
 
