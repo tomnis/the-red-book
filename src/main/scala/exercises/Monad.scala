@@ -60,6 +60,11 @@ trait Monad[F[_]] extends Applicative[F] {
   def join[A](mma: F[F[A]]): F[A] = {
     this.flatMap(mma)((ma: F[A]) => ma)
   }
+
+  def forever[A,B](a: F[A]): F[B] = {
+    lazy val t: F[B] = flatMap(a)(_ => t)
+    t
+  }
 }
 
 

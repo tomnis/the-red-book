@@ -175,6 +175,15 @@ object Par {
   // map(map(y)(g))(f) == map(y)(f compose g)
 
   def delay[A](fa: => Par[A]): Par[A] = (es: ExecutorService) => fa(es)
+
+  def flatMap[A,B](p: Par[A])(choices: A => Par[B]): Par[B] =
+    es => {
+      val k: A = run(es)(p)
+      val l: B = run(es)(choices(k))
+      new AsyncFuture[B] {
+        override private[exercises] def apply(k: B => Unit, onError: Throwable => Unit): Unit = k(l)
+      }
+    }
 }
 
 
