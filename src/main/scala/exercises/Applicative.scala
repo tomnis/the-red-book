@@ -10,6 +10,11 @@ import scala.util.{Failure, Success, Try}
   */
 trait Applicative[F[_]] extends Functor[F] {
 
+  // applicative laws
+  // left and right identity
+  // associative
+  // naturality
+
   // primitives
   def map2[A, B, C](fa: F[A], fb: F[B])(f: (A, B) => C): F[C]
   def unit[A](a: => A): F[A]
@@ -81,11 +86,50 @@ trait Applicative[F[_]] extends Functor[F] {
     val fde: F[D => E] = this.apply(fcde)(fc)
     this.apply(fde)(fd)
   }
+
+
+  // 12.8
+  def product[G[_]](G: Applicative[G]): Applicative[({type f[x] = (F[x], G[x])})#f] = {
+    val self: Applicative[F] = this
+    new Applicative[({ type f[x] = (F[x], G[x]) })#f] {
+      override def unit[A](a: => A): (F[A], G[A]) = {
+        (self.unit(a), G.unit(a))
+      }
+
+      override def map2[A, B, C](fa: (F[A], G[A]), fb: (F[B], G[B]))(f: (A, B) => C): (F[C], G[C]) = {
+        (self.map2(fa._1, fb._1)(f), G.map2(fa._2, fb._2)(f))
+      }
+    }
+  }
+
+  // 12.9
+  def compose[G[_]](G: Applicative[G]): Applicative[({type f[x] = F[G[x]]})#f] = {
+    val self: Applicative[F] = this
+    new Applicative[({ type f[x] = F[G[x]] })#f] {
+      override def unit[A](a: => A): F[G[A]] = {
+        self.unit(G.unit(a))
+      }
+
+      override def map2[A, B, C](fa: F[G[A]], fb: F[G[B]])(f: (A, B) => C): F[G[C]] = {
+        self.map2(fa, fb)((ga: G[A], gb: G[B]) => G.map2(ga, gb)(f))
+      }
+    }
+  }
+
+
+  // 12.12
+  def sequenceMap[K,V](ofa: Map[K,F[V]]): F[Map[K,V]] = {
+    ofa.foldLeft(this.unit(Map.empty[K, V])) { case (acc: F[Map[K, V]], item: (K, F[V])) =>
+        this.map2(acc, item._2)((a, b) => a + (item._1 -> b))
+    }
+  }
+
 }
 
 
 object Applicatives {
 
+  // 12.6
   def validationApplicative[E]: Applicative[({
     type f[x] = Validation[E, x]
   })#f] = new Applicative[({type f[x] = Validation[E, x]})#f] {
@@ -105,4 +149,7 @@ object Applicatives {
 
     override def unit[A](a: => A): Validation[E, A] = Validation(a)
   }
+
+
+
 }
