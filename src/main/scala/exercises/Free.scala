@@ -89,13 +89,13 @@ object Interpreter {
   val interpreter = Free.freeMonad[Function0]
 
   // 13.2
-  @tailrec def runTrampoline[A](a: Free[Function0,A]): A = (a) match {
+  @tailrec def runTrampoline[A](a: Free[Function0,A]): A = a match {
     case Return(a) => a
     case Suspend(r) => r()
-    case FlatMap(x, f) => x match {
+    case FlatMap(x: Free[Function0, A], f: (A => Free[Function0, A])) => x match {
       case Return(a) => runTrampoline { f(a) }
       case Suspend(r) => runTrampoline { f(r()) }
-      case FlatMap(y, g) => runTrampoline { y flatMap { a => g(a) flatMap f } }
+      case FlatMap(y: Free[Function0, A], g: (A => Free[Function0, A])) => runTrampoline { y flatMap { a => g(a) flatMap f } }
     }
   }
 
@@ -106,11 +106,13 @@ object Interpreter {
     case _ => async
   }
 
-  def run[A](async: Async[A]): Par[A] = step(async) match { case Return(a) => Par.unit(a)
-  case Suspend(r) => Par.flatMap(r)(a => run(a))
-  case FlatMap(x, f) => x match {
-    case Suspend(r) => Par.flatMap(r)(a => run(f(a)))
-    case _ => sys.error("Impossible; `step` eliminates these cases") }
+  def run[A](async: Async[A]): Par[A] = step(async) match {
+    case Return(a) => Par.unit(a)
+    case Suspend(r) => Par.flatMap(r)(a => run(a))
+    case FlatMap(x, f) => x match {
+      case Suspend(r) => Par.flatMap(r)(a => run(f(a)))
+      case _ => sys.error("Impossible; `step` eliminates these cases")
+    }
   }
 
   // 13.3

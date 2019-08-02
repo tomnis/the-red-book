@@ -7,7 +7,7 @@ trait Traverse[F[_]] extends Functor[F] with Foldable[F] {
   def traverse[G[_]:Applicative,A,B](fa: F[A])(f: A => G[B]): G[F[B]] =
     sequence(map(fa)(f))
   def sequence[G[_]:Applicative,A](fga: F[G[A]]): G[F[A]] =
-    traverse(fga)(ga => ga)
+    traverse[G, G[A], A](fga)((ga: G[A]) => ga)
 
   type Id[A] = A
 
@@ -18,6 +18,8 @@ trait Traverse[F[_]] extends Functor[F] with Foldable[F] {
       f(fa)
     }
   }
+
+  override def foldLeft[A, B](as: F[A])(zero: B)(f: (B, A) => B): B = ???
 
   // 12.14
   def mapViaTraverse[A,B](fa: F[A])(f: A => B): F[B] = {
@@ -30,10 +32,10 @@ trait Traverse[F[_]] extends Functor[F] with Foldable[F] {
   }
 
 
-  def reverse[A](fa: F[A]): F[A] = {
-    this.fold
-
-  }
+//  def reverse[A](fa: F[A]): F[A] = {
+//    this.fold
+//
+//  }
 }
 
 object Traverse {

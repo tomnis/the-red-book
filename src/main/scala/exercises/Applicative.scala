@@ -73,6 +73,11 @@ trait Applicative[F[_]] extends Functor[F] {
     val fbcd: F[B => C => D] = this.apply(this.unit(f.curried))(fa)
     val fcd: F[C => D] = this.apply(fbcd)(fb)
     this.apply(fcd)(fc)
+
+    val g: F[C => D] = map2(fa, fb)((a, b) => f.curried(a)(b))
+    this.apply(g)(fc)
+//    this.app
+    apply(map2(fa, fb)((a, b) => f.curried(a)(b)))(fc)
   }
 
   def map4[A, B, C, D, E](
@@ -135,7 +140,7 @@ object Applicatives {
   })#f] = new Applicative[({type f[x] = Validation[E, x]})#f] {
     override def map2[A, B, C](fa: Validation[E, A], fb: Validation[E, B])(f: (A, B) => C): Validation[E, C] = {
       (fa, fb) match {
-        case (Invalid(h1, t1), Invalid(h2, t2)) => Invalid(h1, (t1 :+ h2) ++ t2)
+        case (Invalid(h1, t1: Seq[Any]), Invalid(h2, t2)) => Invalid(h1, (t1 :+ h2) ++ t2)
         case (i@ Invalid(_, _), Valid(_)) => i
         case (Valid(_), i@ Invalid(_, _)) => i
 //        case (Valid(a1), Valid(a2)) => Try(f(a1, a2)) match {
