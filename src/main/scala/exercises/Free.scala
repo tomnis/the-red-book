@@ -131,7 +131,10 @@ object Interpreter {
     }
   }
 
-  def runFree[F[_],G[_],A](free: Free[F,A])(t: F ~> G)(implicit G: Monad[G]): G[A] = {
+
+
+
+  def runFree[F[_],G[_],A](free: Free[F,A])(t: Translate[F, G])(implicit G: Monad[G]): G[A] = {
     stepGeneral(free) match {
       case Return(a) => G.unit(a)
       case Suspend(r) => t(r)
@@ -141,10 +144,33 @@ object Interpreter {
   }
 
 
-  // 13.4
-  def translate[F[_],G[_],A](f: Free[F,A])(fg: F ~> G): Free[G,A] =
-    fg.apply(runFree(f)(fg)(Free.freeMonad[G]))
+
+  import Translate._
+  def runConsoleFunction0[A](a: Free[Console,A]): () => A = runFree[Console,Function0,A](a)(consoleToFunction0)
+  def runConsolePar[A](a: Free[Console,A]): Par[A] = runFree[Console,Par,A](a)(consoleToPar)
+
+  // 13.4 runconsolefunction0 is not stacksafe
+  def translate[F[_],G[_],A](f: Free[F,A])(fg: Translate[F, G]): Free[G,A] = {
+    type FreeG[A] = Free[G,A]
+    val t = new (Translate[F, FreeG]) {
+      def apply[A](a: F[A]): Free[G,A] = Suspend { fg(a) }
+    }
+    runFree(f)(t)(Free.freeMonad[G])
+  }
 
 
+  def runConsole[A](a: Free[Console,A]): A = {
+    runTrampoline { translate(a)(new Translate[Console, Function0] {
+      def apply[A](c: Console[A]) = c.toThunk
+    })}
+  }
+
+
+  trait Source {
+    def readBytes(numBytes: Int, callback: Either[Throwable, Array[Byte]] => Unit): Unit
+  }
+
+  // multiple interpreters for the same "program"
+  // how might this be useful?
 }
 

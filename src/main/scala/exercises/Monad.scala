@@ -175,6 +175,14 @@ object Monads {
       fa.flatMap(f)
     }
   }
+
+
+  implicit val function0Monad = new Monad[Function0] {
+    def unit[A](a: => A) = () => a
+    def flatMap[A,B](a: Function0[A])(f: A => Function0[B]) =
+      () => f(a())()
+  }
+
 }
 
 
