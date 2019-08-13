@@ -19,7 +19,6 @@ trait Traverse[F[_]] extends Functor[F] with Foldable[F] {
     }
   }
 
-  override def foldLeft[A, B](as: F[A])(zero: B)(f: (B, A) => B): B = ???
 
   // 12.14
   def mapViaTraverse[A,B](fa: F[A])(f: A => B): F[B] = {
@@ -41,32 +40,32 @@ trait Traverse[F[_]] extends Functor[F] with Foldable[F] {
 object Traverse {
 
   // 12.13
-  val listTraverse = new Traverse[List] {
-    /**
-      * map(x)(a => a) = x
-      *
-      * @param fa
-      * @param f
-      * @tparam A
-      * @tparam B
-      * @return
-      */
-    override def map[A, B](fa: List[A])(f: A => B): List[B] = fa map f
-  }
+//  val listTraverse = new Traverse[List] {
+//    /**
+//      * map(x)(a => a) = x
+//      *
+//      * @param fa
+//      * @param f
+//      * @tparam A
+//      * @tparam B
+//      * @return
+//      */
+//    override def map[A, B](fa: List[A])(f: A => B): List[B] = fa map f
+//  }
 
 
-  val optionTraverse = new Traverse[Option] {
-    /**
-      * map(x)(a => a) = x
-      *
-      * @param fa
-      * @param f
-      * @tparam A
-      * @tparam B
-      * @return
-      */
-    override def map[A, B](fa: Option[A])(f: A => B): Option[B] = fa map f
-  }
+//  val optionTraverse: Traverse[Option] = new Traverse[Option] {
+//    /**
+//      * map(x)(a => a) = x
+//      *
+//      * @param fa
+//      * @param f
+//      * @tparam A
+//      * @tparam B
+//      * @return
+//      */
+//    override def map[A, B](fa: Option[A])(f: A => B): Option[B] = fa map f
+//  }
 
   case class Tree[+A](head: A, tail: List[Tree[A]]) {
     def map[B](f: A => B): Tree[B] = {
@@ -74,16 +73,20 @@ object Traverse {
     }
   }
 
-  def treeTraverse[A]: Traverse[Tree] = new Traverse[Tree[A]] {
-    /**
-      * map(x)(a => a) = x
-      *
-      * @param fa
-      * @param f
-      * @tparam A
-      * @tparam B
-      * @return
-      */
-    override def map[A, B](fa: Tree[A])(f: A => B): Tree[B] = fa map f
-  }
+//  def treeTraverse[A]: Traverse[Tree[A]] = new Traverse[Tree[A]] {
+//    /**
+//      * map(x)(a => a) = x
+//      *
+//      * @param fa
+//      * @param f
+//      * @tparam A
+//      * @tparam B
+//      * @return
+//      */
+//    override def map[A, B](fa: Tree[A])(f: A => B): Tree[B] = fa map f
+//
+//    override def foldRight[A, B](as: Tree[A])(zero: B)(f: (A, B) => B): B = ???
+//
+//    override def foldMap[A, B](as: Tree[A])(f: A => B)(mb: Monoid[B]): B = ???
+//  }
 }

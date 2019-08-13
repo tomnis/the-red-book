@@ -1,6 +1,6 @@
 package exercises
 
-import scala.languageFeature.higherKinds
+import scala.language.higherKinds
 
 /**
   *

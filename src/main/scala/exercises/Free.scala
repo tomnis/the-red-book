@@ -1,7 +1,6 @@
 package exercises
 
 import exercises.Par.Par
-import exercises.Translate.~>
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -86,89 +85,89 @@ object Interpreter {
 //    }
 //  }
 
-  val interpreter = Free.freeMonad[Function0]
+//  val interpreter = Free.freeMonad[Function0]
 
   // 13.2
-  @tailrec def runTrampoline[A](a: Free[Function0,A]): A = a match {
-    case Return(a) => a
-    case Suspend(r) => r()
-    case FlatMap(x: Free[Function0, A], f: (A => Free[Function0, A])) => x match {
-      case Return(a) => runTrampoline { f(a) }
-      case Suspend(r) => runTrampoline { f(r()) }
-      case FlatMap(y: Free[Function0, A], g: (A => Free[Function0, A])) => runTrampoline { y flatMap { a => g(a) flatMap f } }
-    }
-  }
+//  @tailrec def runTrampoline[A](a: Free[Function0,A]): A = a match {
+//    case Return(a) => a
+//    case Suspend(r) => r()
+//    case FlatMap(x: Free[Function0, A], f: (A => Free[Function0, A])) => x match {
+//      case Return(a) => runTrampoline { f(a) }
+//      case Suspend(r) => runTrampoline { f(r()) }
+//      case FlatMap(y: Free[Function0, A], g: (A => Free[Function0, A])) => runTrampoline { y flatMap { a => g(a) flatMap f } }
+//    }
+//  }
 
-  @annotation.tailrec
-  def step[A](async: Async[A]): Async[A] = async match {
-    case FlatMap(FlatMap(x,f), g) => step(x flatMap (a => f(a) flatMap g))
-    case FlatMap(Return(x), f) => step(f(x))
-    case _ => async
-  }
+//  @annotation.tailrec
+//  def step[A](async: Async[A]): Async[A] = async match {
+//    case FlatMap(FlatMap(x,f), g) => step(x flatMap (a => f(a) flatMap g))
+//    case FlatMap(Return(x), f) => step(f(x))
+//    case _ => async
+//  }
 
-  def run[A](async: Async[A]): Par[A] = step(async) match {
-    case Return(a) => Par.unit(a)
-    case Suspend(r) => Par.flatMap(r)(a => run(a))
-    case FlatMap(x, f) => x match {
-      case Suspend(r) => Par.flatMap(r)(a => run(f(a)))
-      case _ => sys.error("Impossible; `step` eliminates these cases")
-    }
-  }
+//  def run[A](async: Async[A]): Par[A] = step(async) match {
+//    case Return(a) => Par.unit(a)
+//    case Suspend(r) => Par.flatMap(r)(a => run(a))
+//    case FlatMap(x, f) => x match {
+//      case Suspend(r) => Par.flatMap(r)(a => run(f(a)))
+//      case _ => sys.error("Impossible; `step` eliminates these cases")
+//    }
+//  }
 
   // 13.3
-  def stepGeneral[F[_], A](a: Free[F, A])(implicit mf: Monad[F]): Free[F, A] = {
-    case FlatMap(FlatMap(x,f), g) => stepGeneral(x flatMap (a => f(a) flatMap g))
-    case FlatMap(Return(x), f) => stepGeneral(f(x))
-    case _ => a
-  }
+//  def stepGeneral[F[_], A](a: Free[F, A])(implicit mf: Monad[F]): Free[F, A] = {
+//    case FlatMap(FlatMap(x,f), g) => stepGeneral(x flatMap (a => f(a) flatMap g))
+//    case FlatMap(Return(x), f) => stepGeneral(f(x))
+//    case _ => a
+//  }
 
-  def runGeneral[F[_],A](a: Free[F,A])(implicit mf: Monad[F]): F[A] = a match {
-    case Return(v) => mf.unit(v)
-    case Suspend(r) => r
-    case FlatMap(x, f) => x match {
-      case Suspend(r) => mf.flatMap(r)(a => runGeneral(f(a)))
-      case _ => sys.error("Impossible; `step` eliminates these cases")
-    }
-  }
-
-
-
-
-  def runFree[F[_],G[_],A](free: Free[F,A])(t: Translate[F, G])(implicit G: Monad[G]): G[A] = {
-    stepGeneral(free) match {
-      case Return(a) => G.unit(a)
-      case Suspend(r) => t(r)
-      case FlatMap(Suspend(r),f) => G.flatMap(t(r))(a => runFree(f(a))(t))
-      case _ => sys.error("Impossible; `step` eliminates these cases")
-    }
-  }
+//  def runGeneral[F[_],A](a: Free[F,A])(implicit mf: Monad[F]): F[A] = a match {
+//    case Return(v) => mf.unit(v)
+//    case Suspend(r) => r
+//    case FlatMap(x, f) => x match {
+//      case Suspend(r) => mf.flatMap(r)(a => runGeneral(f(a)))
+//      case _ => sys.error("Impossible; `step` eliminates these cases")
+//    }
+//  }
 
 
 
-  import Translate._
-  def runConsoleFunction0[A](a: Free[Console,A]): () => A = runFree[Console,Function0,A](a)(consoleToFunction0)
-  def runConsolePar[A](a: Free[Console,A]): Par[A] = runFree[Console,Par,A](a)(consoleToPar)
 
-  // 13.4 runconsolefunction0 is not stacksafe
-  def translate[F[_],G[_],A](f: Free[F,A])(fg: Translate[F, G]): Free[G,A] = {
-    type FreeG[A] = Free[G,A]
-    val t = new (Translate[F, FreeG]) {
-      def apply[A](a: F[A]): Free[G,A] = Suspend { fg(a) }
-    }
-    runFree(f)(t)(Free.freeMonad[G])
-  }
+//  def runFree[F[_],G[_],A](free: Free[F,A])(t: Translate[F, G])(implicit G: Monad[G]): G[A] = {
+//    stepGeneral(free) match {
+//      case Return(a) => G.unit(a)
+//      case Suspend(r) => t(r)
+//      case FlatMap(Suspend(r),f) => G.flatMap(t(r))(a => runFree(f(a))(t))
+//      case _ => sys.error("Impossible; `step` eliminates these cases")
+//    }
+//  }
 
 
-  def runConsole[A](a: Free[Console,A]): A = {
-    runTrampoline { translate(a)(new Translate[Console, Function0] {
-      def apply[A](c: Console[A]) = c.toThunk
-    })}
-  }
+
+//  import Translate._
+//  def runConsoleFunction0[A](a: Free[Console,A]): () => A = runFree[Console,Function0,A](a)(consoleToFunction0)
+//  def runConsolePar[A](a: Free[Console,A]): Par[A] = runFree[Console,Par,A](a)(consoleToPar)
+//
+//  // 13.4 runconsolefunction0 is not stacksafe
+//  def translate[F[_],G[_],A](f: Free[F,A])(fg: Translate[F, G]): Free[G,A] = {
+//    type FreeG[A] = Free[G,A]
+//    val t = new (Translate[F, FreeG]) {
+//      def apply[A](a: F[A]): Free[G,A] = Suspend { fg(a) }
+//    }
+//    runFree(f)(t)(Free.freeMonad[G])
+//  }
 
 
-  trait Source {
-    def readBytes(numBytes: Int, callback: Either[Throwable, Array[Byte]] => Unit): Unit
-  }
+//  def runConsole[A](a: Free[Console,A]): A = {
+//    runTrampoline { translate(a)(new Translate[Console, Function0] {
+//      def apply[A](c: Console[A]) = c.toThunk
+//    })}
+//  }
+//
+//
+//  trait Source {
+//    def readBytes(numBytes: Int, callback: Either[Throwable, Array[Byte]] => Unit): Unit
+//  }
 
   // multiple interpreters for the same "program"
   // how might this be useful?
